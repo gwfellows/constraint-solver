@@ -1,5 +1,5 @@
 import numpy as np
-from math import sin
+import math
 		
 DX = 0.0001
 
@@ -40,22 +40,33 @@ def hessian(f, vec):
 			H[j][i] = mixed_second_derivative(f, vec, i, j)
 	return H
 
-# just for testing
+# just for testing, seems to work
+'''
 def f(v):
-	x, y, z = v
-	return x**2+y**2+z**2
+	x, y = v
+	return (x-5)**2+(y-124.3)**2+10'''
 
 #damped newtons method
-def newtons_method(f, vec_start, n_iters, damping_factor = 0.1):
-	guess = vec_starts
+def newtons_method(f, vec_start, n_iters, damping_factor = 0.01, learning_rate = 0.001):
+	guess = vec_start
 	for _ in range(n_iters):
-		print(guess)
+		print(guess, f(guess))
 		guess = (guess 
-			- (np.linalg.inv(damping_factor*np.identity(len(vec_start)) + hessian(f, guess)) 
+			- learning_rate*(np.linalg.inv(damping_factor*np.identity(len(vec_start)) + hessian(f, guess)) 
 		   @ gradient(f, guess)).transpose()[0])
 	return guess
 
-print (newtons_method(f, [10,234,14], 100))
+def distance_constraint(x1, y1, x2, y2, distance):
+	return abs(math.sqrt((x2-x1)**2 + (y2-y1)**2) - distance)
+
+def equality_constraint(var, val):
+	return abs(var-val)
+	
+def f(v):
+	x1, y1, x2, y2 = v
+	return equality_constraint(x1, 0) + equality_constraint(y1, 0) + distance_constraint(x1, y1, x2, y2, 100)
+	
+print (['{0:.10f}'.format(a) for a in newtons_method(f, [10,234, 32, 23], 10000)])
 '''
 def f(v):
 	x, y, z = v
