@@ -61,12 +61,42 @@ def distance_constraint(x1, y1, x2, y2, distance):
 
 def equality_constraint(var, val):
 	return abs(var-val)
-	
+
+# finish this later
+def angle_constraint(x1, y1, x2, y2, x3, y3, angle):
+	return 2
+
 def f(v):
 	x1, y1, x2, y2 = v
 	return equality_constraint(x1, 0) + equality_constraint(y1, 0) + distance_constraint(x1, y1, x2, y2, 100)
 	
-print (['{0:.10f}'.format(a) for a in newtons_method(f, [10,234, 32, 23], 10000)])
+#print (['{0:.10f}'.format(a) for a in newtons_method(f, [10,234, 32, 23], 10000)])
+
+import pyglet
+from pyglet.window import mouse
+
+window = pyglet.window.Window()
+
+circle = pyglet.shapes.Circle(x=100, y=150, radius=100, color=(50, 225, 30))
+label = pyglet.text.Label('Hello, world',
+                          font_name='Times New Roman',
+                          font_size=36,
+                          x=window.width//2, y=window.height//2,
+                          anchor_x='center', anchor_y='center')
+
+@window.event
+def on_mouse_press(x, y, button, modifiers):
+	print(x,y)
+	if button == mouse.LEFT:
+		print('The left mouse button was pressed.')
+ 
+@window.event
+def on_draw():
+    window.clear()
+    label.draw()
+    circle.draw()
+  
+pyglet.app.run()
 '''
 def f(v):
 	x, y, z = v
@@ -80,4 +110,6 @@ print(np.linalg.det(hessian(f, [-1,-1,-1]))) i think it works https://www.allmat
 print(hessian(f, [1,1,1]))
 print(hessian(f, [-1,-1,-1]))
 '''
+
+# now to do gui
 
