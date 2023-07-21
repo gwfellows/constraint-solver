@@ -3,9 +3,7 @@ import math
 		
 DX = 0.0001
 
-# d^2/dxdy
-# vec = vector 
-# i1, i2 = indies of the 2 variables in the vector
+# d^2/dxdy, vec = vector , i1, i2 = indies of the 2 variables in the vector
 def mixed_second_derivative(f, vec, i1, i2, dx = DX):
 	def vec_replaced(v1, v2):
 		return [v1 if idx == i1 else v2 if idx == i2 else val 
@@ -16,7 +14,7 @@ def mixed_second_derivative(f, vec, i1, i2, dx = DX):
 		return  ( first_derivative(vec[i1]+dx, vec[i2]) - first_derivative(vec[i1], vec[i2]) ) / dx
 	return   ( first_derivative(vec[i1], vec[i2]+dx) - first_derivative(vec[i1], vec[i2]) ) / dx
 
-# should be collomb vector I think
+# collomb vector
 def gradient(f,vec, dx =  DX):
 	def vec_replaced(i, v):
 		return [v if idx == i else val for idx, val in enumerate(vec)]
@@ -54,7 +52,8 @@ def newtons_method(f, vec_start, n_iters, damping_factor = 0.01, learning_rate =
 		guess = (guess 
 			- learning_rate*(np.linalg.inv(damping_factor*np.identity(len(vec_start)) + hessian(f, guess)) 
 		   @ gradient(f, guess)).transpose()[0])
-	return guess
+		yield guess
+	#return guess
 
 def distance_constraint(x1, y1, x2, y2, distance):
 	return abs(math.sqrt((x2-x1)**2 + (y2-y1)**2) - distance)
@@ -68,7 +67,7 @@ def angle_constraint(x1, y1, x2, y2, x3, y3, angle):
 
 def f(v):
 	x1, y1, x2, y2 = v
-	return equality_constraint(x1, 0) + equality_constraint(y1, 0) + distance_constraint(x1, y1, x2, y2, 100)
+	return equality_constraint(x1, 150) + equality_constraint(y1, 150) + distance_constraint(x1, y1, x2, y2, 100)
 	
 #print (['{0:.10f}'.format(a) for a in newtons_method(f, [10,234, 32, 23], 10000)])
 
@@ -77,7 +76,7 @@ from pyglet.window import mouse
 
 window = pyglet.window.Window()
 
-circle = pyglet.shapes.Circle(x=100, y=150, radius=100, color=(50, 225, 30))
+circle = pyglet.shapes.Circle(x=100, y=150, radius=10, color=(50, 225, 30))
 label = pyglet.text.Label('Hello, world',
                           font_name='Times New Roman',
                           font_size=36,
@@ -89,14 +88,32 @@ def on_mouse_press(x, y, button, modifiers):
 	print(x,y)
 	if button == mouse.LEFT:
 		print('The left mouse button was pressed.')
- 
+
 @window.event
 def on_draw():
-    window.clear()
-    label.draw()
-    circle.draw()
-  
+    #window.clear()
+    #label.draw()
+    #circle.draw()
+	pass
+
+itr = newtons_method(f, [100,234, 320, 23], 10000, learning_rate = 0.01)
+#pyglet.app.run()
+def update(dt):
+	window.clear()
+	#print("run")
+	x1, y1, x2, y2 = next(itr)
+	circle1 = pyglet.shapes.Circle(x=x1, y=y1, radius=10, color=(50, 225, 30))
+	circle2 = pyglet.shapes.Circle(x=x2, y=y2, radius=10, color=(50, 225, 30))
+	#circle.draw()
+	circle1.draw()
+	circle2.draw()
+	#window.clear()
+
+pyglet.clock.schedule_interval(update, 1/60.0)
 pyglet.app.run()
+
+
+
 '''
 def f(v):
 	x, y, z = v
