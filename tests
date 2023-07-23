@@ -1,0 +1,30 @@
+'''
+print(
+	mixed_second_derivative(lambda v: sin(v[0])*v[1]**2, [143,10.5], 0, 1)
+	)'''
+
+# just for testing, seems to work
+'''
+def f(v):
+	x, y = v
+	return (x-5)**2+(y-124.3)**2+10'''
+
+#print (['{0:.10f}'.format(a) for a in newtons_method(f, [10,234, 32, 23], 10000)])
+
+
+
+'''
+def f(v):
+	x, y, z = v
+	return 2*y*x**4 + 2*y**3 + 2*x*z**3'''
+	
+# print(gradient(f, [1,1,1])) works
+
+
+'''
+print(np.linalg.det(hessian(f, [-1,-1,-1]))) i think it works https://www.allmath.com/hessian-matrix-calculator.php#examples-of-hessian-matrix
+print(hessian(f, [1,1,1]))
+print(hessian(f, [-1,-1,-1]))
+'''
+
+# now to do gui
