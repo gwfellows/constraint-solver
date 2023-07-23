@@ -48,7 +48,7 @@ def f(v):
 def newtons_method(f, vec_start, n_iters, damping_factor = 0.01, learning_rate = 0.001):
 	guess = vec_start
 	for _ in range(n_iters):
-		print(guess, f(guess))
+		#print(guess, f(guess))
 		guess = (guess 
 			- learning_rate*(np.linalg.inv(damping_factor*np.identity(len(vec_start)) + hessian(f, guess)) 
 		   @ gradient(f, guess)).transpose()[0])
@@ -89,6 +89,52 @@ def on_mouse_press(x, y, button, modifiers):
 	if button == mouse.LEFT:
 		print('The left mouse button was pressed.')
 
+x1, y1, x2, y2 = 0,0,0,0
+hilighted1 = False
+hilighted2 = False
+itr = newtons_method(f, [100,234, 320, 23], 10000, learning_rate = 0.01)
+
+
+
+'''
+@window.event
+def on_mouse_motion(x, y, dx, dy):
+    circle = pyglet.shapes.Circle(x=x1, y=y1, radius=20, color=(20, 225, 30))
+    circle.draw()
+    pass'''
+
+def on_mouse_press(x, y, button, modifiers):
+    pass
+
+def on_mouse_release(x, y, button, modifiers):
+    pass
+
+@window.event
+def on_mouse_motion(x, y, dx, dy):
+	global hilighted1, hilighted2
+	#print("mouse moved")
+	if (x1+10 > x > x-10) and  (y1+10 > y > y1-10):
+		print("x1 hilighted")
+		hilighted1 = True
+	else:
+		hilighted1 = False
+	if  (x2+10 > x > x2-10) and  (y2+10 > y > y2-10):
+		hilighted2 = True
+	else:
+		hilighted2 = False
+
+@window.event
+def on_mouse_drag(x, y, dx, dy, *args):
+	global x1, y1, x2, y2, itr
+	#on_mouse_motion(x,y,dx,dy)
+	if hilighted1:
+		x1 = x
+		y1 = y
+	if hilighted2:
+		x2 = x
+		y2 = y
+	itr = newtons_method(f, [x1,y1, x2, y2], 10000, learning_rate = 0.01)
+
 @window.event
 def on_draw():
     #window.clear()
@@ -96,20 +142,42 @@ def on_draw():
     #circle.draw()
 	pass
 
-itr = newtons_method(f, [100,234, 320, 23], 10000, learning_rate = 0.01)
+
 #pyglet.app.run()
 def update(dt):
+	global x1, y1, x2, y2
 	window.clear()
 	#print("run")
 	x1, y1, x2, y2 = next(itr)
+	print(hilighted1)
+	if hilighted1:
+		#print("--------------------")
+		pyglet.shapes.Circle(x=x1, y=y1, radius=15, color=(20, 225, 30)).draw()
+		pyglet.shapes.Circle(x=x1, y=y1, radius=13, color=(0, 0, 0)).draw()
+	if hilighted2:
+		#print("--------------------")
+		pyglet.shapes.Circle(x=x2, y=y2, radius=15, color=(20, 225, 30)).draw()
+		pyglet.shapes.Circle(x=x2, y=y2, radius=13, color=(0, 0, 0)).draw()
 	circle1 = pyglet.shapes.Circle(x=x1, y=y1, radius=10, color=(50, 225, 30))
 	circle2 = pyglet.shapes.Circle(x=x2, y=y2, radius=10, color=(50, 225, 30))
 	#circle.draw()
 	circle1.draw()
 	circle2.draw()
 	#window.clear()
+'''
+def hilight(a):
+	window.clear()
+	print("--------------------4----------")
+	print(x1, y1)
+	pyglet.shapes.Circle(x=x2, y=y2, radius=10, color=(20, 225, 30)).draw()
+	pyglet.shapes.Circle(x=x1, y=y1, radius=15, color=(20, 225, 30)).draw()
+	pyglet.shapes.Circle(x=x1, y=y1, radius=13, color=(0, 0, 0)).draw()
+	pyglet.shapes.Circle(x=x1, y=y1, radius=10, color=(20, 225, 30)).draw()'''
 
+import time
+#pyglet.clock.schedule_interval(hilight, 1/60.0)
 pyglet.clock.schedule_interval(update, 1/60.0)
+
 pyglet.app.run()
 
 
