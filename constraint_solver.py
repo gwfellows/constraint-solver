@@ -4,6 +4,75 @@ import math
 DX = 0.0001
 
 
+class ConstraintModel:
+    def __init__(self):
+        # {"name": (fixed?, x,y), "name": (fixed?, x,y)}
+        self._points = {}
+        # { "abdist": ["DIST", ["pointa", "pointb"], [10] ] }
+        self._constraints = {}
+
+    def add_point(self, name, x, y):
+        assert (
+            name not in self._points
+        ), "that point is already there, use update_point()"
+        self._points[name] = [False, x, y]
+
+    def update_point(self, name, x, y):
+        assert name in self._points, "that point does not exist, use add_point()"
+        self._points[name] = [self._points[name][0], x, y]
+
+    def add_fixed_point(self, name, x, y):
+        self._points[name] = [True, x, y]
+
+    def add_distance_constraint(self, name, p1, p2, d):
+        self._constraints[name] = ["DIST", [p1, p2], [d]]
+
+    def yield_points(self):
+        for p in self._points:
+            yield (self._points[p][1], self._points[p][2])
+
+    def yield_point_names(self):
+        for p in self._points:
+            yield p
+
+    def get_vector(self):
+        print(self._points)
+        v = []
+        for p in self._points:
+            if not self._points[p][0]:
+                v.append(self._points[p][1])
+                v.append(self._points[p][2])
+        return v
+
+    def update_from_vector(self, vec):
+        v = vec.copy()
+        for p in self._points:
+            if not self._points[p][0]:
+                self._points[p][1] = v[0]
+                self._points[p][2] = v[1]
+                v = v[2:]
+
+    def _distance_constraint(self, x1, y1, x2, y2, distance):
+        return abs(math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) - distance) ** 3
+
+    def get_error_func(self):
+        def f(v):
+            self.update_from_vector(v)
+            error = 0
+            for c in self._constraints.values():
+                if c[0] == "DIST":
+                    error += self._distance_constraint(
+                        self._points[c[1][0]][1],
+                        self._points[c[1][0]][2],
+                        self._points[c[1][1]][1],
+                        self._points[c[1][1]][2],
+                        c[2][0],
+                    )
+            return error
+
+        return f
+
+
 # d^2/dxdy, vec = vector , i1, i2 = indies of the 2 variables in the vector
 def mixed_second_derivative(f, vec, i1, i2, dx=DX):
     def vec_replaced(v1, v2):
@@ -63,37 +132,23 @@ def newtons_method(f, vec_start, n_iters, damping_factor=0.01, learning_rate=0.0
     # return guess
 
 
-def distance_constraint(x1, y1, x2, y2, distance):
-    return abs(math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) - distance)
-
-
-def equality_constraint(var, val):
-    return abs(var - val)
-
-
-# finish this later
-def angle_constraint(x1, y1, x2, y2, x3, y3, angle):
-    return 2
-
-
-def f(v):
-    x1, y1, x2, y2 = v
-    return (
-        equality_constraint(x1, 250)
-        + equality_constraint(y1, 250)
-        + distance_constraint(x1, y1, x2, y2, 100)
-    )
-
-
 import pyglet
 from pyglet.window import mouse
 
 window = pyglet.window.Window()
 
-x1, y1, x2, y2 = 0, 0, 0, 0
-hilighted1 = False
-hilighted2 = False
-itr = newtons_method(f, [100, 234, 320, 23], 10000, learning_rate=0.01)
+m = ConstraintModel()
+m.add_fixed_point("P1", 100, 234)
+m.add_point("P2", 320, 23)
+m.add_point("P3", 320, 23)
+m.add_distance_constraint("C1", "P1", "P2", 50)
+m.add_distance_constraint("C2", "P2", "P3", 50)
+m.add_distance_constraint("C3", "P1", "P3", 50)
+
+
+hilighted = []
+
+itr = newtons_method(m.get_error_func(), m.get_vector(), 10000, learning_rate=0.01)
 
 
 def on_mouse_press(x, y, button, modifiers):
@@ -106,41 +161,45 @@ def on_mouse_release(x, y, button, modifiers):
 
 @window.event
 def on_mouse_motion(x, y, dx, dy):
-    global hilighted1, hilighted2
-    if (x1 + 10 > x > x - 10) and (y1 + 10 > y > y1 - 10):
-        hilighted1 = True
-    else:
-        hilighted1 = False
-    if (x2 + 10 > x > x2 - 10) and (y2 + 10 > y > y2 - 10):
-        hilighted2 = True
-    else:
-        hilighted2 = False
+    global hilighted
+    hilighted = []
+    first_hilighted = False  # i don't want to hilight 2 at once
+    # i may want to later though if you can select a box or something
+    for p in m.yield_points():
+        if first_hilighted:
+            hilighted.append(False)
+        if (p[0] + 10 > x > p[0] - 10) and (p[1] + 10 > y > p[1] - 10):
+            hilighted.append(True)
+            first_hilighted = True
+        else:
+            hilighted.append(False)
 
 
 @window.event
 def on_mouse_drag(x, y, dx, dy, *args):
-    global x1, y1, x2, y2, itr
-    if hilighted1:
-        x1 = x
-        y1 = y
-    if hilighted2:
-        x2 = x
-        y2 = y
-    itr = newtons_method(f, [x1, y1, x2, y2], 10000, learning_rate=0.01)
+    global itr
+    for i, p in enumerate(m.yield_point_names()):
+        if hilighted[i]:
+            print(p)
+            m.update_point(p, x, y)
+    # this does not work if i release early
+    itr = newtons_method(m.get_error_func(), m.get_vector(), 10000, learning_rate=0.01)
 
 
 def update(dt):
-    global x1, y1, x2, y2
     window.clear()
-    x1, y1, x2, y2 = next(itr)
-    if hilighted1:
-        pyglet.shapes.Circle(x=x1, y=y1, radius=15, color=(20, 225, 30)).draw()
-        pyglet.shapes.Circle(x=x1, y=y1, radius=13, color=(0, 0, 0)).draw()
-    if hilighted2:
-        pyglet.shapes.Circle(x=x2, y=y2, radius=15, color=(20, 225, 30)).draw()
-        pyglet.shapes.Circle(x=x2, y=y2, radius=13, color=(0, 0, 0)).draw()
-    pyglet.shapes.Circle(x=x1, y=y1, radius=10, color=(50, 225, 30)).draw()
-    pyglet.shapes.Circle(x=x2, y=y2, radius=10, color=(50, 225, 30)).draw()
+    next(itr)
+    for p, h in zip(m.yield_points(), hilighted):
+        if h:
+            pyglet.shapes.Circle(x=p[0], y=p[1], radius=15, color=(20, 225, 30)).draw()
+            pyglet.shapes.Circle(x=p[0], y=p[1], radius=13, color=(0, 0, 0)).draw()
+        pyglet.shapes.Circle(x=p[0], y=p[1], radius=10, color=(50, 225, 30)).draw()
+    pyglet.text.Label(
+        str(m.get_error_func()(m.get_vector())),
+        font_size=12,
+        x=60,
+        y=30,
+    ).draw()
 
 
 pyglet.clock.schedule_interval(update, 1 / 60.0)
