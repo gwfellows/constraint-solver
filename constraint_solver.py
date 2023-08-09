@@ -1,7 +1,7 @@
 import numpy as np
 import math
 
-DX = 0.0001
+DX = 0.00001
 
 
 class ConstraintModel:
@@ -29,7 +29,14 @@ class ConstraintModel:
 
     def yield_points(self):
         for p in self._points:
-            yield (self._points[p][1], self._points[p][2])
+            yield (self._points[p][1], self._points[p][2], self._points[p][0])
+
+    def yield_constraint_points(self):
+        for p in self._constraints:
+            yield (
+                self._points[self._constraints[p][1][0]][1:],
+                self._points[self._constraints[p][1][1]][1:],
+            )
 
     def yield_point_names(self):
         for p in self._points:
@@ -53,7 +60,7 @@ class ConstraintModel:
                 v = v[2:]
 
     def _distance_constraint(self, x1, y1, x2, y2, distance):
-        return abs(math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) - distance) ** 3
+        return abs(math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) - distance) ** 2
 
     def get_error_func(self):
         def f(v):
@@ -139,11 +146,13 @@ window = pyglet.window.Window()
 
 m = ConstraintModel()
 m.add_fixed_point("P1", 100, 234)
-m.add_point("P2", 320, 23)
-m.add_point("P3", 320, 23)
-m.add_distance_constraint("C1", "P1", "P2", 50)
-m.add_distance_constraint("C2", "P2", "P3", 50)
-m.add_distance_constraint("C3", "P1", "P3", 50)
+m.add_fixed_point("P2", 100, 234 + 100)
+m.add_point("P3", 130, 253)
+m.add_point("P4", 130, 263 + 100)
+m.add_distance_constraint("C1", "P1", "P3", 150)
+m.add_distance_constraint("C2", "P3", "P4", 100)
+m.add_distance_constraint("C3", "P2", "P4", 150)
+m.add_distance_constraint("C4", "P1", "P4", 100 * 1.4)
 
 
 hilighted = []
@@ -183,17 +192,29 @@ def on_mouse_drag(x, y, dx, dy, *args):
             print(p)
             m.update_point(p, x, y)
     # this does not work if i release early
-    itr = newtons_method(m.get_error_func(), m.get_vector(), 10000, learning_rate=0.01)
+    itr = newtons_method(
+        m.get_error_func(),
+        m.get_vector(),
+        10000,
+        learning_rate=10 * 0.01,
+        damping_factor=0.01 * 0.01,
+    )
 
 
 def update(dt):
     window.clear()
     next(itr)
+    for p1, p2 in m.yield_constraint_points():
+        pyglet.shapes.Line(
+            p1[0], p1[1], p2[0], p2[1], width=2, color=(0, 230, 0)
+        ).draw()
     for p, h in zip(m.yield_points(), hilighted):
         if h:
             pyglet.shapes.Circle(x=p[0], y=p[1], radius=15, color=(20, 225, 30)).draw()
             pyglet.shapes.Circle(x=p[0], y=p[1], radius=13, color=(0, 0, 0)).draw()
         pyglet.shapes.Circle(x=p[0], y=p[1], radius=10, color=(50, 225, 30)).draw()
+        if p[2]:
+            pyglet.shapes.Circle(x=p[0], y=p[1], radius=8, color=(0, 0, 0)).draw()
     pyglet.text.Label(
         str(m.get_error_func()(m.get_vector())),
         font_size=12,
